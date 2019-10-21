@@ -4,8 +4,9 @@
         <map
                 id="map"
                 style="width: 100%;height: 300px;"
-                longitude="121.50983349671823" latitue="38.84391337880264"
-                scale="6"
+                :longitude="userLocation.longitude"
+                :latitude="userLocation.latitude"
+                scale="10"
                 :markers="markers"
                 :polyline="polyline"
                 :subkey="mapKey"
@@ -17,6 +18,9 @@
                 @poitap="poitap"
                 @tap="maptap"
                 show-location>
+            <cover-view class="cover-view">
+                <cover-image src="../../static/images/2.png"></cover-image>
+            </cover-view>
         </map>
     </div>
 </template>
@@ -29,13 +33,9 @@
   const qqmapsdk = new QQMapWx({key: mapKey})
 
   export default {
-    data () {
+    data() {
       return {
-        motto: 'Hello miniprograme',
-        userInfo: {
-          nickName: 'mpvue',
-          avatarUrl: 'http://mpvue.com/assets/logo.png'
-        },
+        userLocation: {longitude: 121.49542406220225, latitude: 38.85084702209281},
         polygons: [],
         controls: [{
           id: 1,
@@ -78,10 +78,20 @@
 
       }
     },
-    created () {
-      this.mapCtx = wx.createMapContext('map')
+    created() {
+      const that = this
+      wx.getLocation({
+        type: 'gcj02',
+        success: function (res) {
+          const latitue = res.latitue
+          const longitude = res.longitude
+          that.latitude = latitue
+          that.longitude = longitude
+        }
+      })
     },
-    onShow () {
+    onShow() {
+      this.mapCtx = wx.createMapContext('map')
       this.getPolyLine()
     },
     components: {
@@ -89,7 +99,7 @@
     },
 
     methods: {
-      getPolyLine () {
+      getPolyLine() {
         const that = this
         qqmapsdk.direction({
           sig: mapSig,
@@ -117,42 +127,56 @@
           }
         })
       },
-      regionchange (e) {
+      regionchange(e) {
         console.log(e.type)
       },
-      regionchangestart (e) {
+      regionchangestart(e) {
         console.log(e)
       },
-      regionchangeend (e) {
-        console.log(e)
+      regionchangeend(e) {
+        let latitude = 0
+        let longitude = 0
         this.mapCtx.getCenterLocation({
           success: function (res) {
             console.log(res.longitude)
             console.log(res.latitude)
-            this.markers[0] = {
-              longitude: res.longitude,
-              latitude: res.latitude,
-              iconPath: '@/../static/images/1.png',
-              id: 0,
-              width: 30,
-              height: 30
-            }
+            latitude = res.latitude
+            longitude = res.longitude
           },
           fail: function (onRejected) {
             console.log(onRejected)
           }
         })
+        // this.mapCtx.includePoints({
+        //   padding: [10],
+        //   points:[{
+        //     latitude:latitude,
+        //     longitude: longitude
+        //   }]
+        // })
+        // this.mapCtx.translateMarker({
+        //   markerId: 0,
+        //   autoRotate: true,
+        //   duration: 1000,
+        //   destination: {
+        //     latitude:latitude,
+        //     longitude:longitude,
+        //   },
+        //   animationEnd() {
+        //     console.log('animation end')
+        //   }
+        // })
       },
-      markertap (e) {
+      markertap(e) {
         console.log(e.markerId)
       },
-      controltap (e) {
+      controltap(e) {
         console.log(e.controlId)
       },
-      poitap (e) {
+      poitap(e) {
         console.log(e)
       },
-      maptap (e) {
+      maptap(e) {
         console.log(e)
       }
 
@@ -161,5 +185,10 @@
 </script>
 
 <style scoped>
+.cover-view {
+    position: absolute;
+    top: calc(50% - 10px);
+    left: calc(50% - 10px);
 
+}
 </style>
