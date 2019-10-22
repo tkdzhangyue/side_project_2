@@ -19,7 +19,7 @@
                 @tap="maptap"
                 show-location>
             <cover-view class="cover-view">
-                <cover-image src="../../static/images/2.png"></cover-image>
+                <cover-image src="../../static/images/2.png" @click="putMark()"></cover-image>
             </cover-view>
         </map>
     </div>
@@ -35,6 +35,8 @@
   export default {
     data() {
       return {
+        newPolyLine: [],
+        centerLocation: {longitude: 0, latitude: 0},
         userLocation: {longitude: 121.49542406220225, latitude: 38.85084702209281},
         polygons: [],
         controls: [{
@@ -92,21 +94,42 @@
     },
     onShow() {
       this.mapCtx = wx.createMapContext('map')
-      this.getPolyLine()
+      this.getPolyLine(this.polyline[0].points)
     },
     components: {
       card
     },
 
     methods: {
-      getPolyLine() {
+      putMark() {
+        this.newPolyLine.push({
+          latitude: this.centerLocation.latitude,
+          longitude: this.centerLocation.longitude
+        })
+        if (this.newPolyLine.length >= 4) {
+          this.getPolyLine(this.newPolyLine)
+        }
+
+      },
+      getPolyLine(line) {
         const that = this
+        let from = {latitude: line[0].latitude, longitude: line[0].longitude}
+        let to = {latitude: line[line.length - 1].latitude, longitude: line[line.length - 1].longitude}
+        let waypoints = ''
+        line.splice(0, 1)
+        line.splice(line.length - 1, 1)
+        for (const point of line) {
+          waypoints += point.latitude + ',' + point.longitude + ';'
+        }
+        waypoints = waypoints.slice(0, -1)
+
         qqmapsdk.direction({
           sig: mapSig,
           mode: 'driving',
           policy: 'AVOID_HIGHWAY',
-          from: {latitude: 38.84391337880264, longitude: 121.50983349671823},
-          to: {latitude: 38.83383399871607, longitude: 121.40749526614617},
+          from: from,
+          to: to,
+          waypoints: waypoints,
           success: function (res) {
             console.log(res)
             const coors = res.result.routes[0].polyline
@@ -134,14 +157,15 @@
         console.log(e)
       },
       regionchangeend(e) {
+        const that = this
         let latitude = 0
         let longitude = 0
         this.mapCtx.getCenterLocation({
           success: function (res) {
-            console.log(res.longitude)
-            console.log(res.latitude)
             latitude = res.latitude
             longitude = res.longitude
+            that.centerLocation.latitude = latitude
+            that.centerLocation.longitude = longitude
           },
           fail: function (onRejected) {
             console.log(onRejected)
@@ -185,10 +209,10 @@
 </script>
 
 <style scoped>
-.cover-view {
-    position: absolute;
-    top: calc(50% - 10px);
-    left: calc(50% - 10px);
+    .cover-view {
+        position: absolute;
+        top: calc(50% - 25px);
+        left: calc(50% - 25px);
 
-}
+    }
 </style>
