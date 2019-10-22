@@ -1,9 +1,18 @@
 <template>
     <div class="pMain" :style="{height: screenHeight+'px'}">
+
+        <open-data type="userAvatarUrl" class="user-pic-head"></open-data>
+        <div class="map-menu" :style="{top: screenHeight*0.4-30+'px'}" v-if="beginMakeActivity">
+            <button class="btn-new-activity" type="default" size="mini" :loading="false" :plain="false"
+                    :disabled="false"
+                    @click="startNewActivity">
+                生成路线
+            </button>
+        </div>
         <div @click="clickHandle" class="map-border">
             <map
                     id="map"
-                    style="width: 100%;height: 300px;"
+                    style="width: 100%;height: 100%;"
                     :longitude="userLocation.longitude"
                     :latitude="userLocation.latitude"
                     scale="10"
@@ -21,13 +30,14 @@
                 <cover-view class="cover-view">
                     <cover-image src="../../static/images/2.png" @click="putMark()"></cover-image>
                 </cover-view>
-                <cover-view class="cover-avatar">
-                    <open-data type="userAvatarUrl" class="user-pic"></open-data>
-                </cover-view>
+                <!--                <cover-view class="cover-avatar">-->
+                <!--                    &lt;!&ndash;                    <open-data type="userAvatarUrl" class="user-pic"></open-data>&ndash;&gt;-->
+                <!--                    &lt;!&ndash;                    <cover-image src&ndash;&gt;-->
+                <!--                </cover-view>-->
             </map>
         </div>
         <div class="activity">
-            <swiper class="activity-swipper" :indicator-dots="true">
+            <swiper class="activity-swipper" :indicator-dots="true" v-if="!publishNewActivity">
                 <div class="all-activity" v-for="(page,pageIndex) in activityPage">
                     <swiper-item>
                         <div class="swiper-div">
@@ -54,6 +64,9 @@
                                         <div class="activity-intensity">
                                             {{oneActivity.intensity}}
                                         </div>
+                                        <div class="activity-button">
+                                            <button size="mini" @click="takeActivity(activityIndex)">参加</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -61,6 +74,13 @@
                     </swiper-item>
                 </div>
             </swiper>
+            <div class="edit-activity" v-if="publishNewActivity">
+                <input placeholder="活动介绍" v-bind="activityEdit.title">
+                <input placeholder="活动时间" v-bind="activityEdit.date">
+                <input placeholder="活动强度介绍" v-bind="activityEdit.intensity">
+                <button class="btn-publish" size="default" @click="publishActivity()">确认发布</button>
+                <button class="btn-cancel" size="default" @click="cancelPublish()">取消</button>
+            </div>
         </div>
     </div>
 </template>
@@ -73,8 +93,12 @@
   const qqmapsdk = new QQMapWx({key: mapKey})
 
   export default {
-    data () {
+    data() {
       return {
+        activityEdit: {title: '', date: '', intensity: ''},
+        publishNewActivity: false,
+        beginMakeActivity: false,
+        userInfo: {},
         canIUse: false,
         activityPage: [
           {
@@ -162,11 +186,11 @@
 
       }
     },
-    mounted () {
+    mounted() {
       this.screenHeight = wx.getSystemInfoSync().windowHeight
       this.polyline[0].points = this.activityPage[0].activity[0].points
     },
-    created () {
+    created() {
       doLogin()
       const that = this
       wx.getLocation({
@@ -179,7 +203,7 @@
         }
       })
     },
-    onLoad () {
+    onLoad() {
       const that = this
       wx.setNavigationBarTitle({title: '高性能单车活动'})
       wx.getSetting({
@@ -190,6 +214,7 @@
             wx.getUserInfo({
               success: function (res) {
                 console.log(res.userInfo)
+                that.userInfo = res.userInfo
               }
             })
           }
@@ -199,27 +224,42 @@
         }
       })
     },
-    onShow () {
+    onShow() {
       this.mapCtx = wx.createMapContext('map')
       this.getPolyLine(this.polyline[0].points)
     },
     components: {},
-
     methods: {
-      bindGetUserInfo (res) {
+      cancelPublish() {
+        this.publishNewActivity = false
+        this.polyline = []
+        this.markers = []
+      },
+      publishActivity() {
+        // todo
+      },
+      takeActivity(activityIndex) {
+        // todo
+      },
+      startNewActivity() {
+        this.getPolyLine(deepCopy(this.markers))
+        this.beginMakeActivity = false
+        this.publishNewActivity = true
+      },
+      bindGetUserInfo(res) {
         console.log(res)
         // success
         if (res.mp.detail.errMsg.indexOf('ok') >= 0) {
           wx.setStorageSync('userInfo', res.mp.detail.userInfo)
         }
       },
-      activityOnClick (pageIndex, activityIndex) {
+      activityOnClick(pageIndex, activityIndex) {
         wx.showLoading({
           title: '加载中' // 数据请求前loading
         })
         this.getPolyLine(deepCopy(this.activityPage[pageIndex].activity[activityIndex].points))
       },
-      putMark () {
+      putMark() {
         this.newPolyLine.push({
           latitude: this.centerLocation.latitude,
           longitude: this.centerLocation.longitude
@@ -236,8 +276,12 @@
           width: 30,
           height: 30
         })
+
+        if (this.markers.length >= 2) {
+          this.beginMakeActivity = true
+        }
       },
-      getPolyLine (line) {
+      getPolyLine(line) {
         const that = this
         let from = {latitude: line[0].latitude, longitude: line[0].longitude}
         let to = {latitude: line[line.length - 1].latitude, longitude: line[line.length - 1].longitude}
@@ -270,7 +314,13 @@
             for (let i = 0; i < coors.length; i += 2) {
               pl.push({latitude: coors[i], longitude: coors[i + 1]})
             }
-            that.polyline[0].points = pl
+            that.polyline = []
+            that.polyline.push({
+              points: pl,
+              color: '#FF0000DD',
+              width: 6,
+              dottedLine: false
+            })
           },
           fail: function (err) {
             console.log(err)
@@ -278,13 +328,13 @@
           }
         })
       },
-      regionchange (e) {
+      regionchange(e) {
         console.log(e.type)
       },
-      regionchangestart (e) {
+      regionchangestart(e) {
         console.log(e)
       },
-      regionchangeend (e) {
+      regionchangeend(e) {
         const that = this
         let latitude = 0
         let longitude = 0
@@ -319,16 +369,16 @@
         //   }
         // })
       },
-      markertap (e) {
+      markertap(e) {
         console.log(e.mp.markerId)
       },
-      controltap (e) {
+      controltap(e) {
         console.log(e.controlId)
       },
-      poitap (e) {
+      poitap(e) {
         console.log(e)
       },
-      maptap (e) {
+      maptap(e) {
         console.log(e)
       }
 
@@ -405,7 +455,7 @@
 
     .activity_title-date {
         height: 100%;
-        width: 60%;
+        width: 40%;
     }
 
     .activity_title-date div {
@@ -415,12 +465,52 @@
 
     .activity-intensity {
         height: 100%;
-        width: 40%;
+        width: 30%;
     }
+
+    .activity-button {
+        height: 100%;
+        width: 30%;
+    }
+
     .activity-detail {
         height: 100%;
         width: 100%;
         display: flex;
         flex-direction: row;
+    }
+
+    .user-pic-head {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 1000;
+        height: 40px;
+        width: 40px;
+    }
+
+    .map-menu {
+        position: absolute;
+        right: 0;
+        z-index: 1000;
+        height: 40px;
+        width: 80px;
+    }
+
+    .activity-button {
+        text-align: center;
+    }
+
+    .activity-button button {
+        margin: 0 auto;
+    }
+
+    .edit-activity {
+        width: 100%;
+        height: 100%;
+    }
+
+    .edit-activity input {
+        border-bottom: 1px solid;
     }
 </style>
