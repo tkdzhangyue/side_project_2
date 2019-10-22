@@ -1,40 +1,131 @@
 <template>
-    <div @click="clickHandle">
+    <div class="pMain" :style="{height: screenHeight+'px'}">
+        <div @click="clickHandle" class="map-border">
+            <map
+                    id="map"
+                    style="width: 100%;height: 300px;"
+                    :longitude="userLocation.longitude"
+                    :latitude="userLocation.latitude"
+                    scale="10"
+                    :markers="markers"
+                    :polyline="polyline"
+                    :subkey="mapKey"
+                    @regionchange="regionchange"
+                    @start="regionchangestart"
+                    @end="regionchangeend"
+                    @markertap="markertap"
+                    @controltap="controltap"
+                    @poitap="poitap"
+                    @tap="maptap"
+                    show-location>
+                <cover-view class="cover-view">
+                    <cover-image src="../../static/images/2.png" @click="putMark()"></cover-image>
+                </cover-view>
+                <cover-view class="cover-avatar">
+                    <open-data type="userAvatarUrl" class="user-pic"></open-data>
+                </cover-view>
+            </map>
+        </div>
+        <div class="activity">
+            <swiper class="activity-swipper" :indicator-dots="true">
+                <div class="all-activity" v-for="(page,pageIndex) in activityPage">
+                    <swiper-item>
+                        <div class="swiper-div">
+                            <button v-if="!canIUse && pageIndex===1" open-type="getUserInfo"
+                                    @getuserinfo="bindGetUserInfo">授权登录
+                            </button>
 
-        <map
-                id="map"
-                style="width: 100%;height: 300px;"
-                :longitude="userLocation.longitude"
-                :latitude="userLocation.latitude"
-                scale="10"
-                :markers="markers"
-                :polyline="polyline"
-                :subkey="mapKey"
-                @regionchange="regionchange"
-                @start="regionchangestart"
-                @end="regionchangeend"
-                @markertap="markertap"
-                @controltap="controltap"
-                @poitap="poitap"
-                @tap="maptap"
-                show-location>
-            <cover-view class="cover-view">
-                <cover-image src="../../static/images/2.png" @click="putMark()"></cover-image>
-            </cover-view>
-        </map>
+                            <div class="page-title">
+                                <label>{{page.title}}</label>
+                            </div>
+
+                            <div class="each-activity">
+                                <div class="one-activity" @click="activityOnClick(pageIndex, activityIndex)"
+                                     v-for="(oneActivity, activityIndex) in page.activity">
+                                    <img class="user-pic" :src="oneActivity.author.avatarUrl">
+                                    <label class="user-nic">{{oneActivity.author.nickName}}</label>
+                                    <!--                                    <open-data type="userAvatarUrl" class="user-pic"></open-data>-->
+                                    <!--                                    <open-data type="userNickName" lang="zh_CN" class="user-nic"></open-data>-->
+                                    <div class="activity-detail">
+                                        <div class="activity_title-date">
+                                            <div>{{oneActivity.title}}</div>
+                                            <div> {{oneActivity.date}}</div>
+                                        </div>
+                                        <div class="activity-intensity">
+                                            {{oneActivity.intensity}}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </swiper-item>
+                </div>
+            </swiper>
+        </div>
     </div>
 </template>
 
 <script>
-  import card from '@/components/card'
   import QQMapWx from '../../libs/qqmap-wx-jssdk.js'
   import {mapKey, mapSig} from '../../config/config.js'
+  import {deepCopy, doLogin} from '../../utils/index.js'
 
   const qqmapsdk = new QQMapWx({key: mapKey})
 
   export default {
-    data() {
+    data () {
       return {
+        canIUse: false,
+        activityPage: [
+          {
+            title: '人气Top',
+            activity: [
+              {
+                title: '活动测试1',
+                date: '19号上午8点',
+                intensity: '新人谨慎参加',
+                author: {
+                  nickName: 'test',
+                  avatarUrl: 'https://wx.qlogo.cn/mmopen/vi_32/DYAIOgq83epFyCELpVg2fGviaoicEQBNvcEMj6FoVzpJsoJ6ciafoF7JzaSqZHIyFV3fAg9IZaHacFkJXESRSmE7g/132'
+                },
+                points: [
+                  {
+                    longitude: 121.50983349671823,
+                    latitude: 38.84391337880264
+                  },
+                  {
+                    longitude: 121.40749526614617,
+                    latitude: 38.83383399871607
+                  }
+                ]
+              },
+              {
+                title: '活动测试2',
+                date: '22号上午8点',
+                intensity: '新人谨慎参加',
+                author: {
+                  nickName: 'test',
+                  avatarUrl: 'https://wx.qlogo.cn/mmopen/vi_32/DYAIOgq83epFyCELpVg2fGviaoicEQBNvcEMj6FoVzpJsoJ6ciafoF7JzaSqZHIyFV3fAg9IZaHacFkJXESRSmE7g/132'
+                },
+                points: [
+                  {
+                    longitude: 121.3691957226978,
+                    latitude: 38.85129264853112
+                  },
+                  {
+                    longitude: 121.20543077170386,
+                    latitude: 38.86617480780238
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            title: '我发起的活动',
+            activity: []
+          }
+        ],
+        screenHeight: 500,
         newPolyLine: [],
         centerLocation: {longitude: 0, latitude: 0},
         userLocation: {longitude: 121.49542406220225, latitude: 38.85084702209281},
@@ -49,16 +140,7 @@
           },
           clickable: true
         }],
-        markers: [
-          {
-            longitude: 121.50983349671823,
-            latitude: 38.84391337880264,
-            iconPath: '../../static/images/1.png',
-            id: 0,
-            width: 30,
-            height: 30
-          }
-        ],
+        markers: [],
         polyline: [
           {
             points: [
@@ -80,7 +162,12 @@
 
       }
     },
-    created() {
+    mounted () {
+      this.screenHeight = wx.getSystemInfoSync().windowHeight
+      this.polyline[0].points = this.activityPage[0].activity[0].points
+    },
+    created () {
+      doLogin()
       const that = this
       wx.getLocation({
         type: 'gcj02',
@@ -92,16 +179,47 @@
         }
       })
     },
-    onShow() {
+    onLoad () {
+      const that = this
+      wx.setNavigationBarTitle({title: '高性能单车活动'})
+      wx.getSetting({
+        success: function (res) {
+          that.canIUse = true
+          if (res.authSetting['scope.userInfo']) {
+            // 已经授权，可以直接调用 getUserInfo 获取头像昵称
+            wx.getUserInfo({
+              success: function (res) {
+                console.log(res.userInfo)
+              }
+            })
+          }
+        },
+        fail: function (res) {
+          that.canIUse = false
+        }
+      })
+    },
+    onShow () {
       this.mapCtx = wx.createMapContext('map')
       this.getPolyLine(this.polyline[0].points)
     },
-    components: {
-      card
-    },
+    components: {},
 
     methods: {
-      putMark() {
+      bindGetUserInfo (res) {
+        console.log(res)
+        // success
+        if (res.mp.detail.errMsg.indexOf('ok') >= 0) {
+          wx.setStorageSync('userInfo', res.mp.detail.userInfo)
+        }
+      },
+      activityOnClick (pageIndex, activityIndex) {
+        wx.showLoading({
+          title: '加载中' // 数据请求前loading
+        })
+        this.getPolyLine(deepCopy(this.activityPage[pageIndex].activity[activityIndex].points))
+      },
+      putMark () {
         this.newPolyLine.push({
           latitude: this.centerLocation.latitude,
           longitude: this.centerLocation.longitude
@@ -110,8 +228,16 @@
           this.getPolyLine(this.newPolyLine)
         }
 
+        this.markers.push({
+          latitude: this.centerLocation.latitude,
+          longitude: this.centerLocation.longitude,
+          iconPath: '../../static/images/3.png',
+          id: this.markers.length === 0 ? 1 : this.markers[this.markers.length - 1].id + 1,
+          width: 30,
+          height: 30
+        })
       },
-      getPolyLine(line) {
+      getPolyLine (line) {
         const that = this
         let from = {latitude: line[0].latitude, longitude: line[0].longitude}
         let to = {latitude: line[line.length - 1].latitude, longitude: line[line.length - 1].longitude}
@@ -131,6 +257,7 @@
           to: to,
           waypoints: waypoints,
           success: function (res) {
+            wx.hideLoading()
             console.log(res)
             const coors = res.result.routes[0].polyline
             const pl = []
@@ -147,16 +274,17 @@
           },
           fail: function (err) {
             console.log(err)
+            wx.hideLoading()
           }
         })
       },
-      regionchange(e) {
+      regionchange (e) {
         console.log(e.type)
       },
-      regionchangestart(e) {
+      regionchangestart (e) {
         console.log(e)
       },
-      regionchangeend(e) {
+      regionchangeend (e) {
         const that = this
         let latitude = 0
         let longitude = 0
@@ -191,16 +319,16 @@
         //   }
         // })
       },
-      markertap(e) {
-        console.log(e.markerId)
+      markertap (e) {
+        console.log(e.mp.markerId)
       },
-      controltap(e) {
+      controltap (e) {
         console.log(e.controlId)
       },
-      poitap(e) {
+      poitap (e) {
         console.log(e)
       },
-      maptap(e) {
+      maptap (e) {
         console.log(e)
       }
 
@@ -211,8 +339,88 @@
 <style scoped>
     .cover-view {
         position: absolute;
-        top: calc(50% - 25px);
+        top: calc(50% - 50px);
         left: calc(50% - 25px);
+    }
 
+    .cover-avatar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 60px;
+        height: 60px;
+    }
+
+    .pMain {
+        overflow: hidden;
+    }
+
+    .map-border {
+        height: 40%;
+    }
+
+    .activity {
+        height: 59%;
+        margin-top: 10px;
+    }
+
+    .activity-swipper {
+        height: 100%;
+    }
+
+    .swiper-div {
+        /*overflow-y: auto;*/
+    }
+
+    .page-title {
+        height: 40px;
+        width: 100%;
+        text-align: center;
+        line-height: 40px;
+    }
+
+    .each-activity {
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .one-activity {
+        height: 48px;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+    }
+
+    .user-pic {
+        height: 45px;
+        width: 45px;
+        min-height: 45px;
+        min-width: 45px;
+    }
+
+    .user-nic {
+        width: 90px;
+        height: 100%;
+    }
+
+    .activity_title-date {
+        height: 100%;
+        width: 60%;
+    }
+
+    .activity_title-date div {
+        width: 100%;
+        height: 44%;
+    }
+
+    .activity-intensity {
+        height: 100%;
+        width: 40%;
+    }
+    .activity-detail {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
     }
 </style>
