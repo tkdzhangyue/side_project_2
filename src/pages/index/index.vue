@@ -30,88 +30,93 @@
                 <cover-view class="cover-view">
                     <cover-image src="../../static/images/2.png" @click="putMark()"></cover-image>
                 </cover-view>
-                <!--                <cover-view class="cover-avatar">-->
-                <!--                    &lt;!&ndash;                    <open-data type="userAvatarUrl" class="user-pic"></open-data>&ndash;&gt;-->
-                <!--                    &lt;!&ndash;                    <cover-image src&ndash;&gt;-->
-                <!--                </cover-view>-->
             </map>
         </div>
         <div class="activity">
-            <swiper class="activity-swipper" :indicator-dots="true" v-if="!publishNewActivity">
-                <div class="all-activity" v-for="(page,pageIndex) in activityPage">
-                    <swiper-item>
-                        <div class="swiper-div">
-                            <button v-if="!canIUse && pageIndex===1" open-type="getUserInfo"
-                                    @getuserinfo="bindGetUserInfo">授权登录
-                            </button>
+            <div class="swiper-div">
+                <div class="page-title">
+                    <label>{{activityPage.title}}</label>
+                </div>
 
-                            <div class="page-title">
-                                <label>{{page.title}}</label>
+                <div class="each-activity">
+                    <div class="one-activity" @click="activityOnClick(activityIndex)"
+                         v-for="(oneActivity, activityIndex) in activityPage.activity">
+                        <img class="user-pic" :src="oneActivity.author.avatarUrl">
+                        <label class="user-nic">{{oneActivity.author.nickName}}</label>
+                        <div class="activity-detail">
+                            <div class="activity_title-date">
+                                <div>{{oneActivity.title}}</div>
+                                <div> {{oneActivity.activityDateString}}</div>
                             </div>
-
-                            <div class="each-activity">
-                                <div class="one-activity" @click="activityOnClick(pageIndex, activityIndex)"
-                                     v-for="(oneActivity, activityIndex) in page.activity">
-                                    <img class="user-pic" :src="oneActivity.author.avatarUrl">
-                                    <label class="user-nic">{{oneActivity.author.nickName}}</label>
-                                    <!--                                    <open-data type="userAvatarUrl" class="user-pic"></open-data>-->
-                                    <!--                                    <open-data type="userNickName" lang="zh_CN" class="user-nic"></open-data>-->
-                                    <div class="activity-detail">
-                                        <div class="activity_title-date">
-                                            <div>{{oneActivity.title}}</div>
-                                            <div> {{oneActivity.date}}</div>
-                                        </div>
-                                        <div class="activity-intensity">
-                                            {{oneActivity.intensity}}
-                                        </div>
-                                        <div class="activity-button">
-                                            <button size="mini" @click="takeActivity(activityIndex)">参加</button>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="activity-intensity">
+                                {{oneActivity.intensity}}
+                            </div>
+                            <div class="activity-button">
+                                <button size="mini" open-type="getUserInfo" @getuserinfo="bindGetUserInfo">
+                                    参加
+                                </button>
                             </div>
                         </div>
-                    </swiper-item>
+                    </div>
                 </div>
-            </swiper>
+            </div>
             <div class="edit-activity" v-if="publishNewActivity">
                 <input placeholder="活动介绍" v-bind="activityEdit.title">
-                <input placeholder="活动时间" v-bind="activityEdit.date">
+                <div>
+                    <picker mode="multiSelector" @change="bindMultiPickerChange"
+                            @columnchange="bindMultiPickerColumnChange" :value="multiIndex" :range="multiArray">
+                        <view class="picker">
+                            活动时间选择：{{multiArray[0][multiIndex[0]]}}
+                            {{multiArray[1][multiIndex[1]]}}点{{multiArray[2][multiIndex[2]]}}分
+                        </view>
+                    </picker>
+                </div>
                 <input placeholder="活动强度介绍" v-bind="activityEdit.intensity">
                 <button class="btn-publish" size="default" @click="publishActivity()">确认发布</button>
                 <button class="btn-cancel" size="default" @click="cancelPublish()">取消</button>
             </div>
         </div>
     </div>
+
 </template>
 
 <script>
   import QQMapWx from '../../libs/qqmap-wx-jssdk.js'
   import {mapKey, mapSig} from '../../config/config.js'
-  import {deepCopy, doLogin} from '../../utils/index.js'
+  import {deepCopy, doLogin, post} from '../../utils/index.js'
+  import {Activity} from "../../models/activity";
 
   const qqmapsdk = new QQMapWx({key: mapKey})
 
   export default {
     data() {
       return {
+        currentHours: new Date().getHours(),
+        currentMinute: new Date().getMinutes(),
+        startDate: "请选择日期",
+        multiIndex: [0, 0, 0],
+        multiArray: [['今天', '明天', '后天'], [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21], [0, 15, 30, 45]],
         activityEdit: {title: '', date: '', intensity: ''},
         publishNewActivity: false,
         beginMakeActivity: false,
         userInfo: {},
         canIUse: false,
-        activityPage: [
+        activityPage:
           {
             title: '人气Top',
             activity: [
               {
                 title: '活动测试1',
-                date: '19号上午8点',
-                intensity: '新人谨慎参加',
+                activityTimeString: '19号上午8点',
+                activityDate: new Date().getTime(),
+                intensity: '变态',
                 author: {
                   nickName: 'test',
-                  avatarUrl: 'https://wx.qlogo.cn/mmopen/vi_32/DYAIOgq83epFyCELpVg2fGviaoicEQBNvcEMj6FoVzpJsoJ6ciafoF7JzaSqZHIyFV3fAg9IZaHacFkJXESRSmE7g/132'
+                  avatarUrl: 'https://wx.qlogo.cn/mmopen/vi_32/DYAIOgq83epFyCELpVg2fGviaoicEQBNvcEMj6FoVzpJsoJ6ciafoF7JzaSqZHIyFV3fAg9IZaHacFkJXESRSmE7g/132',
+                  openid: 'oAW6-4nEYfkOaDDAobWjE7qW1wi0'
                 },
+                activityId: '7d1987ca-f6b9-11e9-8d92-a0c589358918',
+                groupMembers: [],
                 points: [
                   {
                     longitude: 121.50983349671823,
@@ -125,12 +130,16 @@
               },
               {
                 title: '活动测试2',
-                date: '22号上午8点',
-                intensity: '新人谨慎参加',
+                activityTimeString: '22号上午8点',
+                activityDate: new Date().getTime(),
+                intensity: '低',
                 author: {
                   nickName: 'test',
-                  avatarUrl: 'https://wx.qlogo.cn/mmopen/vi_32/DYAIOgq83epFyCELpVg2fGviaoicEQBNvcEMj6FoVzpJsoJ6ciafoF7JzaSqZHIyFV3fAg9IZaHacFkJXESRSmE7g/132'
+                  avatarUrl: 'https://wx.qlogo.cn/mmopen/vi_32/DYAIOgq83epFyCELpVg2fGviaoicEQBNvcEMj6FoVzpJsoJ6ciafoF7JzaSqZHIyFV3fAg9IZaHacFkJXESRSmE7g/132',
+                  openid: 'oAW6-4nEYfkOaDDAobWjE7qW1wi0'
                 },
+                activityId: '7f6707dc-f6b9-11e9-bea9-a0c589358918',
+                groupMembers: [],
                 points: [
                   {
                     longitude: 121.3691957226978,
@@ -144,11 +153,6 @@
               }
             ]
           },
-          {
-            title: '我发起的活动',
-            activity: []
-          }
-        ],
         screenHeight: 500,
         newPolyLine: [],
         centerLocation: {longitude: 0, latitude: 0},
@@ -188,7 +192,8 @@
     },
     mounted() {
       this.screenHeight = wx.getSystemInfoSync().windowHeight
-      this.polyline[0].points = this.activityPage[0].activity[0].points
+      this.polyline[0].points = this.activityPage.activity[0].points
+      this.getActivityPage()
     },
     created() {
       doLogin()
@@ -230,16 +235,32 @@
     },
     components: {},
     methods: {
+      getActivityPage() {
+        // todo
+        for (const ac of this.activityPage.activity) {
+          ac.activityDateString = this.getActivityTimeString(ac.activityDate)
+        }
+      },
       cancelPublish() {
         this.publishNewActivity = false
         this.polyline = []
         this.markers = []
+        this.newPolyLine = []
       },
       publishActivity() {
         // todo
+        const activityToAdd = new Activity()
+
       },
-      takeActivity(activityIndex) {
-        // todo
+      async takeActivity(activityIndex) {
+        const userInfo = wx.getStorageSync('userInfo')
+        const openid = wx.getStorageSync('openid')
+        const activityId = this.activityPage.activity[activityIndex].activityId
+        if (openid === '') {
+          return
+        }
+        const data = await post('/takeActivity/', {openid: openid, activityId: activityId})
+        console.log('takeActivity post', data)
       },
       startNewActivity() {
         this.getPolyLine(deepCopy(this.markers))
@@ -251,35 +272,48 @@
         // success
         if (res.mp.detail.errMsg.indexOf('ok') >= 0) {
           wx.setStorageSync('userInfo', res.mp.detail.userInfo)
+          this.takeActivity()
+        } else {
+          // 拒绝
+          // todo
         }
       },
-      activityOnClick(pageIndex, activityIndex) {
+      activityOnClick(activityIndex) {
         wx.showLoading({
           title: '加载中' // 数据请求前loading
         })
-        this.getPolyLine(deepCopy(this.activityPage[pageIndex].activity[activityIndex].points))
+        this.getPolyLine(deepCopy(this.activityPage.activity[activityIndex].points))
       },
       putMark() {
-        this.newPolyLine.push({
-          latitude: this.centerLocation.latitude,
-          longitude: this.centerLocation.longitude
+        const that = this
+        let latitude = 0
+        let longitude = 0
+        this.mapCtx.getCenterLocation({
+          success: function (res) {
+            latitude = res.latitude
+            longitude = res.longitude
+            that.centerLocation.latitude = latitude
+            that.centerLocation.longitude = longitude
+            that.newPolyLine.push({
+              latitude: that.centerLocation.latitude,
+              longitude: that.centerLocation.longitude
+            })
+            that.markers.push({
+              latitude: that.centerLocation.latitude,
+              longitude: that.centerLocation.longitude,
+              iconPath: '../../static/images/3.png',
+              id: that.markers.length === 0 ? 1 : that.markers[that.markers.length - 1].id + 1,
+              width: 30,
+              height: 30
+            })
+            if (that.markers.length >= 2) {
+              that.beginMakeActivity = true
+            }
+          },
+          fail: function (onRejected) {
+            console.log(onRejected)
+          }
         })
-        if (this.newPolyLine.length >= 4) {
-          this.getPolyLine(this.newPolyLine)
-        }
-
-        this.markers.push({
-          latitude: this.centerLocation.latitude,
-          longitude: this.centerLocation.longitude,
-          iconPath: '../../static/images/3.png',
-          id: this.markers.length === 0 ? 1 : this.markers[this.markers.length - 1].id + 1,
-          width: 30,
-          height: 30
-        })
-
-        if (this.markers.length >= 2) {
-          this.beginMakeActivity = true
-        }
       },
       getPolyLine(line) {
         const that = this
@@ -335,39 +369,7 @@
         console.log(e)
       },
       regionchangeend(e) {
-        const that = this
-        let latitude = 0
-        let longitude = 0
-        this.mapCtx.getCenterLocation({
-          success: function (res) {
-            latitude = res.latitude
-            longitude = res.longitude
-            that.centerLocation.latitude = latitude
-            that.centerLocation.longitude = longitude
-          },
-          fail: function (onRejected) {
-            console.log(onRejected)
-          }
-        })
-        // this.mapCtx.includePoints({
-        //   padding: [10],
-        //   points:[{
-        //     latitude:latitude,
-        //     longitude: longitude
-        //   }]
-        // })
-        // this.mapCtx.translateMarker({
-        //   markerId: 0,
-        //   autoRotate: true,
-        //   duration: 1000,
-        //   destination: {
-        //     latitude:latitude,
-        //     longitude:longitude,
-        //   },
-        //   animationEnd() {
-        //     console.log('animation end')
-        //   }
-        // })
+        console.log(e)
       },
       markertap(e) {
         console.log(e.mp.markerId)
@@ -380,137 +382,53 @@
       },
       maptap(e) {
         console.log(e)
+      },
+      getActivityTimeString(time) {
+        const date = new Date(time)
+        const day = date.getDay()
+        let timeString = ''
+        switch (day) {
+          case 1:
+            timeString += '本周一'
+            break
+          case 2:
+            timeString += '本周二'
+            break
+          case 3:
+            timeString += '本周三'
+            break
+          case 4:
+            timeString += '本周四'
+            break
+          case 5:
+            timeString += '本周五'
+            break
+          case 6:
+            timeString += '本周六'
+            break
+          case 7 :
+            timeString += '本周日'
+            break
+        }
+        const hour = date.getHours()
+        const minute = date.getMinutes()
+        timeString = timeString + hour + '点' + minute + '分'
+        return timeString
+      },
+      pickerTap() {
+        // todo
+      },
+      bindMultiPickerColumnChange(e) {
+        console.log('修改的列为', e.mp.detail.column, '，值为', e.mp.detail.value);
+        // todo
+      },
+      bindMultiPickerChange(e) {
+        console.log('picker发送选择改变，携带值为', e.mp.detail.value)
+        this.multiIndex = e.mp.detail.value
       }
 
     }
   }
 </script>
 
-<style scoped>
-    .cover-view {
-        position: absolute;
-        top: calc(50% - 50px);
-        left: calc(50% - 25px);
-    }
-
-    .cover-avatar {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 60px;
-        height: 60px;
-    }
-
-    .pMain {
-        overflow: hidden;
-    }
-
-    .map-border {
-        height: 40%;
-    }
-
-    .activity {
-        height: 59%;
-        margin-top: 10px;
-    }
-
-    .activity-swipper {
-        height: 100%;
-    }
-
-    .swiper-div {
-        /*overflow-y: auto;*/
-    }
-
-    .page-title {
-        height: 40px;
-        width: 100%;
-        text-align: center;
-        line-height: 40px;
-    }
-
-    .each-activity {
-        height: 100%;
-        overflow-y: auto;
-    }
-
-    .one-activity {
-        height: 48px;
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-    }
-
-    .user-pic {
-        height: 45px;
-        width: 45px;
-        min-height: 45px;
-        min-width: 45px;
-    }
-
-    .user-nic {
-        width: 90px;
-        height: 100%;
-    }
-
-    .activity_title-date {
-        height: 100%;
-        width: 40%;
-    }
-
-    .activity_title-date div {
-        width: 100%;
-        height: 44%;
-    }
-
-    .activity-intensity {
-        height: 100%;
-        width: 30%;
-    }
-
-    .activity-button {
-        height: 100%;
-        width: 30%;
-    }
-
-    .activity-detail {
-        height: 100%;
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-    }
-
-    .user-pic-head {
-        position: absolute;
-        top: 0;
-        right: 0;
-        z-index: 1000;
-        height: 40px;
-        width: 40px;
-    }
-
-    .map-menu {
-        position: absolute;
-        right: 0;
-        z-index: 1000;
-        height: 40px;
-        width: 80px;
-    }
-
-    .activity-button {
-        text-align: center;
-    }
-
-    .activity-button button {
-        margin: 0 auto;
-    }
-
-    .edit-activity {
-        width: 100%;
-        height: 100%;
-    }
-
-    .edit-activity input {
-        border-bottom: 1px solid;
-    }
-</style>
+<style scoped>@import 'index.vue.css';</style>

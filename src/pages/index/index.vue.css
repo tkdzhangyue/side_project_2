@@ -1,0 +1,132 @@
+.cover-view {
+    position: absolute;
+    top: calc(50% - 50px);
+    left: calc(50% - 25px);
+}
+
+.cover-avatar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60px;
+    height: 60px;
+}
+
+.pMain {
+    overflow: hidden;
+}
+
+.map-border {
+    height: 40%;
+}
+
+.activity {
+    height: 59%;
+    margin-top: 10px;
+}
+
+.activity-swipper {
+    height: 100%;
+}
+
+.swiper-div {
+    /*overflow-y: auto;*/
+}
+
+.page-title {
+    height: 40px;
+    width: 100%;
+    text-align: center;
+    line-height: 40px;
+}
+
+.each-activity {
+    height: 100%;
+    overflow-y: auto;
+}
+
+.one-activity {
+    height: 48px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.user-pic {
+    height: 45px;
+    width: 45px;
+    min-height: 45px;
+    min-width: 45px;
+}
+
+.user-nic {
+    width: 90px;
+    height: 100%;
+}
+
+.activity_title-date {
+    height: 100%;
+    width: 40%;
+}
+
+.activity_title-date div {
+    width: 100%;
+    height: 44%;
+}
+
+.activity-intensity {
+    height: 100%;
+    width: 30%;
+    text-align: center;
+    line-height: 48px;
+}
+
+.activity-button {
+    height: 100%;
+    width: 30%;
+}
+
+.activity-detail {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.user-pic-head {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+    height: 40px;
+    width: 40px;
+}
+
+.map-menu {
+    position: absolute;
+    right: 0;
+    z-index: 1000;
+    height: 40px;
+    width: 80px;
+}
+
+.activity-button {
+    text-align: center;
+}
+
+.activity-button button {
+    margin: 0 auto;
+}
+
+.edit-activity {
+    width: 100%;
+    height: 100%;
+}
+
+.edit-activity input {
+    border-bottom: 1px solid;
+}
+.center{
+    display: flex;
+    justify-content: center;
+}
