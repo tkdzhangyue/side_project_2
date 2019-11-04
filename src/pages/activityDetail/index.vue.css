@@ -1,0 +1,53 @@
+.ac-top {
+    height: 48px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.ac-mid {
+    width: 100%;
+}
+
+.author-pic {
+    width: 48px;
+    height: 48px;
+}
+
+.act-title_date {
+    width: calc(100% - 50px);
+    height: 48px;
+}
+
+.btn-take {
+    height: 48px;
+    width: 148px;
+}
+
+.act-title, .act-date {
+    width: 100%;
+    height: 24px;
+}
+
+.user-pic {
+    height: 48px;
+    width: 48px;
+    min-height: 45px;
+    min-width: 45px;
+}
+
+.act-allMem {
+    width: 100%;
+    height: calc(100% - 48px);
+    display: flex;
+    flex-direction: row;
+}
+
+.act-mem, .act-mem image {
+    width: 48px;
+    height: 48px;
+}
+
+.take-act {
+    text-align: center;
+}

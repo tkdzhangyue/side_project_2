@@ -53,7 +53,7 @@
               </div>
               <div class="activity-button">
                 <button size="mini" open-type="getUserInfo" @getuserinfo="bindGetUserInfo">
-                  参加
+                  详细
                 </button>
               </div>
             </div>
@@ -72,7 +72,8 @@
           </picker>
         </div>
         <input placeholder="活动强度介绍" v-model="activityEdit.intensity">
-        <button class="btn-publish" size="mini" open-type="getUserInfo" @getuserinfo="publishActivity">
+        <button class="btn-publish" size="mini" open-type="getUserInfo" @getuserinfo="publishActivity"
+        >
           确认发布
         </button>
         <button class="btn-cancel" size="mini" @click="cancelPublish()">
@@ -95,6 +96,7 @@
     export default {
         data() {
             return {
+                selectedActivityIndex: 1,
                 currentHours: new Date().getHours(),
                 currentMinute: new Date().getMinutes(),
                 startDate: "请选择日期",
@@ -149,7 +151,7 @@
                 success: function (res) {
                     const latitue = res.latitue
                     const longitude = res.longitude
-                    that.latitude = latitue
+                    that.latitudelatitude = latitue
                     that.longitude = longitude
                 }
             })
@@ -186,13 +188,7 @@
                 for (const item of allActivity) {
                     this.activityPage.activity.push(item.activityInfo)
                 }
-                if (this.activityPage.activity.length > 0) {
-                    // this.getPolyLine(this.activityPage.activity[0].activityInfo.polyline.points)
-                    // this.polyline = [this.activityPage.activity[0].polyline]
-                }
-                // for (const ac of this.activityPage.activity) {
-                //     ac.activityDateString = this.getActivityTimeString(ac.activityDate)
-                // }
+                wx.setStorageSync('activityInfo', this.activityPage.activity)
             },
             cancelPublish() {
                 this.publishNewActivity = false
@@ -203,9 +199,9 @@
             async publishActivity(res) {
                 if (res.mp.detail.errMsg.indexOf('ok') >= 0) {
                     // success
-                    wx.setStorageSync('userInfo', res.mp.detail.userInfo)
-                    const userInfo = res.mp.detail.userInfo
+                    const userInfo = deepCopy(res.mp.detail.userInfo)
                     userInfo['openid'] = wx.getStorageSync('openid')
+                    wx.setStorageSync('userInfo', userInfo)
                     const activityToAdd = new Activity()
                     activityToAdd.title = this.activityEdit.title
                     activityToAdd.intensity = this.activityEdit.intensity
@@ -250,15 +246,16 @@
                 this.publishNewActivity = false
                 // this.polyline[0].points = this.activityPage.activity[0].polyline.points
             },
-            async takeActivity(activityIndex) {
+            takeActivity(activityIndex) {
                 const userInfo = wx.getStorageSync('userInfo')
                 const openid = wx.getStorageSync('openid')
                 const activityId = this.activityPage.activity[activityIndex].activityId
                 if (openid === '') {
                     return
                 }
-                const data = await post('/takeActivity/', {openid: openid, userInfo: userInfo, activityId: activityId})
-                console.log('takeActivity post', data)
+                wx.navigateTo({
+                    url: '/pages/activityDetail/main?id=' + this.activityPage.activity[activityIndex].activityId
+                })
             },
             startNewActivity() {
                 this.getPolyLine(deepCopy(this.markers))
@@ -267,17 +264,19 @@
                 this.bindMultiPickerChange({mp: {detail: {value: [0, 0, 0]}}})
             },
             bindGetUserInfo(res) {
-                console.log(res)
                 // success
                 if (res.mp.detail.errMsg.indexOf('ok') >= 0) {
-                    wx.setStorageSync('userInfo', res.mp.detail.userInfo)
-                    this.takeActivity()
+                    const userInfo = res.mp.detail.userInfo
+                    userInfo['openid'] = wx.getStorageSync('openid')
+                    wx.setStorageSync('userInfo', userInfo)
+                    this.takeActivity(this.selectedActivityIndex)
                 } else {
                     // 拒绝
                     // todo
                 }
             },
             activityOnClick(activityIndex) {
+                this.selectedActivityIndex = activityIndex
                 this.polyline[0].points = deepCopy(this.activityPage.activity[activityIndex].polyline.points)
             },
             putMark() {
@@ -430,23 +429,7 @@
                 time1 += this.multiIndex[0] * 24 * 3600 * 1000
                 this.activityEdit.date = new Date(time1).getTime()
             },
-            postMyLocation() {
-                const that = this
-                wx.getLocation({
-                    type: 'gcj02',
-                    success: async function (res) {
-                        const latitue = res.latitue
-                        const longitude = res.longitude
-                        that.latitude = latitue
-                        that.longitude = longitude
 
-                        const data = await post('/updateLocation/', {
-                            openid: wx.getStorageSync('openid'),
-                            location: {latitue: latitue, longitude: longitude}
-                        })
-                    }
-                })
-            },
             async getActivityMembersLocation(activity) {
                 const openid = wx.getStorageSync('openid')
                 if (activity.allMember.indexOf(openid) !== -1) {
