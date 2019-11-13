@@ -44,9 +44,8 @@
             </view>
           </picker>
         </div>
-        <input placeholder="活动强度介绍" v-model="activityEdit.intensity">
-        <button class="btn-publish" size="mini" open-type="getUserInfo" @getuserinfo="publishActivity"
-        >
+        <input placeholder="活动强度介绍" readonly v-model="activityEdit.intensity">
+        <button class="btn-publish" size="mini" open-type="getUserInfo" @getuserinfo="publishActivity">
           确认发布
         </button>
         <button class="btn-cancel" size="mini" @click="cancelPublish()">
@@ -64,7 +63,7 @@
           <div class="one-activity" @click="activityOnClick(activityIndex)"
                v-for="(oneActivity, activityIndex) in activityPage.activity" :key="activityIndex">
             <img class="user-pic" :src="oneActivity.author.avatarUrl">
-            <label class="user-nic">{{oneActivity.author.nickName}}</label>
+            <!--            <label class="user-nic">{{oneActivity.author.nickName}}</label>-->
             <div class="activity-detail">
               <div class="activity_title-date">
                 <div class="activity_title">{{oneActivity.title}}</div>
@@ -270,6 +269,7 @@
             },
             startNewActivity() {
                 this.getPolyLine(deepCopy(this.markers))
+
                 this.beginMakeActivity = false
                 this.publishNewActivity = true
                 this.bindMultiPickerChange({mp: {detail: {value: [0, 0, 0]}}})
@@ -288,6 +288,10 @@
             },
             activityOnClick(activityIndex) {
                 this.selectedActivityIndex = activityIndex
+                // 地图焦点
+                const pos = this.activityPage.activity[activityIndex].polyline.points
+                this.mapLo.longitude = (pos[0].longitude + pos[pos.length - 1].longitude) / 2
+                this.mapLo.latitude = (pos[0].latitude + pos[pos.length - 1].latitude) / 2
                 this.polyline[0].points = deepCopy(this.activityPage.activity[activityIndex].polyline.points)
                 console.log(this.polyline[0])
             },
@@ -367,6 +371,9 @@
                             width: 6,
                             dottedLine: false
                         })
+                        // 获得路线长度 返回公里数
+                        that.activityEdit.intensity = parseInt(res.result.routes[0].distance / 1000) + 'km'
+
                     },
                     fail: function (err) {
                         console.log(err)
