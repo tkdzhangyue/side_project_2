@@ -32,22 +32,15 @@ export default {
 }
 
 export function doLogin() {
+    let openid = ''
     wx.login({
         success(res) {
-            // wx.getUserInfo({
-            //   success: function (res) {
-            //     console.log('sucess')
-            //   },
-            //   fail: function (res) {
-            //     console.log('fail')
-            //   }
-            // })
             if (res.code) {
                 console.log(res)
                 wx.request({
                     url: config.host + '/login/' + res.code,
                     success: (res) => {
-                        const openid = res.data.openid
+                        openid = res.data.openid
                         const sessionKey = res.data.session_key
                         wx.setStorageSync('openid', openid)
                         wx.setStorageSync('sessionKey', sessionKey)
@@ -59,6 +52,7 @@ export function doLogin() {
             }
         }
     })
+    return openid
 }
 
 export function get(url, data) {
@@ -96,5 +90,13 @@ function request(url, method, data, header = {}) {
             }
         })
     })
+}
+
+export function isNull(a) {
+    let re = false
+    if (a === null || a === undefined) {
+        re = true
+    }
+    return re
 }
 

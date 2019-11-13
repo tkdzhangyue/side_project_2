@@ -2,19 +2,13 @@
   <div class="pMain" :style="{height: screenHeight+'px'}">
 
     <open-data type="userAvatarUrl" class="user-pic-head"></open-data>
-    <div class="map-menu" :style="{top: screenHeight*0.4-30+'px'}" v-if="beginMakeActivity">
-      <button class="btn-new-activity" type="default" size="default" :loading="false" :plain="false"
-              :disabled="false"
-              @click="startNewActivity">
-        生成路线
-      </button>
-    </div>
+
     <div @click="clickHandle" class="map-border">
       <map
           id="map"
           style="width: 100%;height: 100%;"
-          :longitude="userLocation.longitude"
-          :latitude="userLocation.latitude"
+          :longitude="mapLo.longitude"
+          :latitude="mapLo.latitude"
           scale="10"
           :markers="markers"
           :polyline="polyline"
@@ -32,7 +26,35 @@
         </cover-view>
       </map>
     </div>
-    <div class="activity">
+    <div class="activity-menu" v-if="beginMakeActivity||publishNewActivity">
+      <button class="btn-new-activity" type="default" size="default" :loading="false" :plain="false"
+              :disabled="false"
+              @click="startNewActivity"
+              v-if="beginMakeActivity">
+        生成路线
+      </button>
+      <div class="edit-activity" v-if="publishNewActivity">
+        <input placeholder="活动介绍" v-model="activityEdit.title">
+        <div>
+          <picker mode="multiSelector" @change="bindMultiPickerChange"
+                  @columnchange="bindMultiPickerColumnChange" :value="multiIndex" :range="multiArray">
+            <view class="picker">
+              活动时间选择：{{multiArray[0][multiIndex[0]]}}
+              {{multiArray[1][multiIndex[1]]}}点{{multiArray[2][multiIndex[2]]}}分
+            </view>
+          </picker>
+        </div>
+        <input placeholder="活动强度介绍" v-model="activityEdit.intensity">
+        <button class="btn-publish" size="mini" open-type="getUserInfo" @getuserinfo="publishActivity"
+        >
+          确认发布
+        </button>
+        <button class="btn-cancel" size="mini" @click="cancelPublish()">
+          取消
+        </button>
+      </div>
+    </div>
+    <div class="activity" v-if="!(beginMakeActivity||publishNewActivity)">
       <div class="swiper-div">
         <div class="page-title">
           <label>{{activityPage.title}}</label>
@@ -60,26 +82,7 @@
           </div>
         </div>
       </div>
-      <div class="edit-activity" v-if="publishNewActivity">
-        <input placeholder="活动介绍" v-model="activityEdit.title">
-        <div>
-          <picker mode="multiSelector" @change="bindMultiPickerChange"
-                  @columnchange="bindMultiPickerColumnChange" :value="multiIndex" :range="multiArray">
-            <view class="picker">
-              活动时间选择：{{multiArray[0][multiIndex[0]]}}
-              {{multiArray[1][multiIndex[1]]}}点{{multiArray[2][multiIndex[2]]}}分
-            </view>
-          </picker>
-        </div>
-        <input placeholder="活动强度介绍" v-model="activityEdit.intensity">
-        <button class="btn-publish" size="mini" open-type="getUserInfo" @getuserinfo="publishActivity"
-        >
-          确认发布
-        </button>
-        <button class="btn-cancel" size="mini" @click="cancelPublish()">
-          取消
-        </button>
-      </div>
+
     </div>
   </div>
 
@@ -96,6 +99,7 @@
     export default {
         data() {
             return {
+                openid: '',
                 selectedActivityIndex: 1,
                 currentHours: new Date().getHours(),
                 currentMinute: new Date().getMinutes(),
@@ -115,7 +119,7 @@
                 screenHeight: 500,
                 newPolyLine: [],
                 centerLocation: {longitude: 0, latitude: 0},
-                userLocation: {longitude: 121.49542406220225, latitude: 38.85084702209281},
+                mapLo: {longitude: 121.49542406220225, latitude: 38.85084702209281},
                 polygons: [],
                 controls: [{
                     id: 1,
@@ -141,7 +145,6 @@
         },
         mounted() {
             this.screenHeight = wx.getSystemInfoSync().windowHeight
-            this.getActivityPage()
         },
         created() {
             doLogin()
@@ -149,10 +152,10 @@
             wx.getLocation({
                 type: 'gcj02',
                 success: function (res) {
-                    const latitue = res.latitue
-                    const longitude = res.longitude
-                    that.latitudelatitude = latitue
-                    that.longitude = longitude
+                    that.mapLo = {
+                        latitude: res.latitude,
+                        longitude: res.longitude
+                    }
                 }
             })
         },
@@ -179,15 +182,18 @@
         },
         onShow() {
             this.mapCtx = wx.createMapContext('map')
+            this.getActivityPage()
         },
         components: {},
         methods: {
             async getActivityPage() {
-                const allActivity = await get('/getMainPageActivity/', {openid: wx.getStorageSync('openid')})
+                this.openid = wx.getStorageSync('openid')
+                const allActivity = await get('/getMainPageActivity/', {openid: this.openid})
                 this.activityPage.activity = []
                 for (const item of allActivity) {
                     this.activityPage.activity.push(item.activityInfo)
                 }
+                console.log(this.activityPage.activity)
                 wx.setStorageSync('activityInfo', this.activityPage.activity)
             },
             cancelPublish() {
@@ -217,24 +223,31 @@
                         activityToAdd.intensity < 1
                     ) {
                         wx.showToast({title: '请补全活动信息', icon: 'none', duration: 900})
+                        return
                     }
                     if (activityToAdd.author['openid'].length < 6) {
                         doLogin()
                         activityToAdd.author['openid'] = wx.getStorageSync('openid')
+                        return
                     }
+                    // 压缩路线数据
+                    const tmpP = []
+                    for (let i = 0; i < activityToAdd.polyline.points.length; i++) {
+                        if (i % 10 === 0) {
+                            tmpP.push(activityToAdd.polyline.points[i])
+                        }
+                    }
+                    activityToAdd.polyline.points = tmpP
                     const data = await post('/newActivity/', {
                         openid: activityToAdd.author['openid'],
-                        userInfo: res.mp.detail.userInfo,
+                        userInfo: userInfo,
                         activityToAdd: activityToAdd
                     })
                     if (data.success) {
-                        const tempArr = deepCopy(this.activityPage)
-                        tempArr.activity.splice(0, 0, activityToAdd)
-                        setTimeout(() => {
-                            this.activityPage = tempArr
-                        }, 100)
+                        this.takeActivity(activityToAdd.activityId)
                     } else {
                         wx.showToast({title: '发布失败！', icon: 'none', duration: 900})
+                        return
                     }
                 } else {
                     // 拒绝
@@ -246,15 +259,13 @@
                 this.publishNewActivity = false
                 // this.polyline[0].points = this.activityPage.activity[0].polyline.points
             },
-            takeActivity(activityIndex) {
-                const userInfo = wx.getStorageSync('userInfo')
+            takeActivity(activityId) {
                 const openid = wx.getStorageSync('openid')
-                const activityId = this.activityPage.activity[activityIndex].activityId
                 if (openid === '') {
                     return
                 }
                 wx.navigateTo({
-                    url: '/pages/activityDetail/main?id=' + this.activityPage.activity[activityIndex].activityId
+                    url: '/pages/activityDetail/main?id=' + activityId
                 })
             },
             startNewActivity() {
@@ -269,7 +280,7 @@
                     const userInfo = res.mp.detail.userInfo
                     userInfo['openid'] = wx.getStorageSync('openid')
                     wx.setStorageSync('userInfo', userInfo)
-                    this.takeActivity(this.selectedActivityIndex)
+                    this.takeActivity(this.activityPage.activity[this.selectedActivityIndex].activityId)
                 } else {
                     // 拒绝
                     // todo
@@ -278,6 +289,7 @@
             activityOnClick(activityIndex) {
                 this.selectedActivityIndex = activityIndex
                 this.polyline[0].points = deepCopy(this.activityPage.activity[activityIndex].polyline.points)
+                console.log(this.polyline[0])
             },
             putMark() {
                 const that = this
@@ -298,11 +310,16 @@
                             longitude: that.centerLocation.longitude,
                             iconPath: '../../static/images/3.png',
                             id: that.markers.length === 0 ? 1 : that.markers[that.markers.length - 1].id + 1,
-                            width: 30,
-                            height: 30
+                            width: 20,
+                            height: 20
                         })
                         if (that.markers.length >= 2) {
                             that.beginMakeActivity = true
+                        }
+                        // 更新地图中心点位置
+                        that.mapLo = {
+                            latitude: res.latitude,
+                            longitude: res.longitude
                         }
                     },
                     fail: function (onRejected) {

@@ -4,6 +4,7 @@
     left: calc(50% - 25px);
 }
 
+
 .cover-avatar {
     position: absolute;
     top: 0;
@@ -23,6 +24,14 @@
 .activity {
     height: 59%;
     margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.activity-menu {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
 }
 
 .activity-swipper {
@@ -43,6 +52,8 @@
 .each-activity {
     height: 100%;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .one-activity {
@@ -145,6 +156,7 @@
     display: flex;
     justify-content: center;
 }
+
 .btn-new-activity {
     background-color: darkred;
 }

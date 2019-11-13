@@ -43,7 +43,15 @@
     flex-direction: row;
 }
 
-.act-mem, .act-mem image {
+.act-mem {
+    width: 50px;
+    height: 65px;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+ .act-mem image {
     width: 48px;
     height: 48px;
 }

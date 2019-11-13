@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="ac-top">
+    <div class="ac-top" v-if="activity.title">
       <div class="author-pic">
         <img class="user-pic" :src="activity.author.avatarUrl">
       </div>
@@ -12,9 +12,6 @@
           {{activity.localeString}}
         </div>
       </div>
-      <!--      <div class="btn-take">-->
-      <!--        <button>参加</button>-->
-      <!--      </div>-->
     </div>
     <div class="ac-mid" :style="{height: screenHeight*0.5 + 'px'}">
       <map
@@ -33,9 +30,11 @@
       </map>
     </div>
     <div class="ac-bom" :style="{height: 0.5* screenHeight - 48 + 'px'}">
-      <div class="act-allMem">
+<!--      <label class="mem-title"></label>-->
+      <div class="act-allMem" v-if="activity.title">
         <div class="act-mem" v-for="(mem,index) in activity.allMember">
-          <img :src="mem.avatarUrl">
+            <img :src="mem.avatarUrl">
+            <div class="nick">{{mem.nickName}}</div>
         </div>
       </div>
       <div class="take-act" v-if="!isTake">
@@ -85,25 +84,34 @@
         },
         onShow() {
             this.activityId = this.$root.$mp.query.id
-            const allAct = wx.getStorageSync('activityInfo')
-            for (const act of allAct) {
-                if (act.activityId === this.activityId) {
-                    this.activity = act
-                }
-            }
-            this.polyline[0].points = this.activity.polyline.points
-            this.initMap()
-            this.isTake = this.isAuthor()
+            doLogin()
+            this.getActivityDetail(this.activityId)
+        },
+        methods: {
+            init() {
+                this.polyline[0].points = this.activity.polyline.points
+                this.initMap()
+                this.isTake = this.isAuthor()
 
-            // setInterval(() => {
                 if (this.isTake) {
                     this.postMyLocation()
                 }
-            // }, 120 * 1000)
-                // test
-            // }, 5000)
-        },
-        methods: {
+            },
+            isAuthor() {
+                // todo
+            },
+            async getActivityDetail(acId) {
+                const data = await get('/activityDetail/', {activityId: acId})
+                if (data.success) {
+                    this.activity = data.activity.activityInfo
+                    this.init()
+                    return true
+                } else {
+                    wx.showToast({title: '网络错误，请稍后重试。', icon: 'none', duration: 900})
+                    return false
+                }
+
+            },
             initMap() {
                 this.mapLa = this.activity.polyline.points[0].latitude * 0.5 + this.activity.polyline.points[this.activity.polyline.points.length - 1].latitude * 0.5
                 this.mapLo = this.activity.polyline.points[0].longitude * 0.5 + this.activity.polyline.points[this.activity.polyline.points.length - 1].longitude * 0.5
