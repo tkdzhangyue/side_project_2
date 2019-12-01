@@ -62,7 +62,7 @@
         <div class="each-activity" v-if="!publishNewActivity">
           <div class="one-activity" @click="activityOnClick(activityIndex)"
                v-for="(oneActivity, activityIndex) in activityPage.activity" :key="activityIndex">
-            <img class="user-pic" :src="oneActivity.author.avatarUrl">
+            <img class="user-pic" :src="oneActivity.allMember[0].avatarUrl">
             <!--            <label class="user-nic">{{oneActivity.author.nickName}}</label>-->
             <div class="activity-detail">
               <div class="activity_title-date">
@@ -182,6 +182,9 @@
         onShow() {
             this.mapCtx = wx.createMapContext('map')
             this.getActivityPage()
+            if (this.polyline[0].points.length !== 0) {
+                this.polyline[0].points = []
+            }
         },
         components: {},
         methods: {
@@ -197,7 +200,7 @@
             },
             cancelPublish() {
                 this.publishNewActivity = false
-                this.polyline = []
+                this.polyline[0].points = []
                 this.markers = []
                 this.newPolyLine = []
             },

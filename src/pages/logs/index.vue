@@ -7,7 +7,7 @@
     <!--      </div>-->
     <!--    </div>-->
 
-    <div class="my-act" v-for="(act,index) in myAct" v-if="myAct.length>0">
+    <div class="my-act" v-for="(act,index) in myAct" v-if="myAct.length>0" @click="actOnClick(act.activityId)">
       <div class="act-title">
         <div class="act-t">{{act.title}}</div>
         <div class="act-date">{{act.localeString}}</div>
@@ -35,12 +35,12 @@
             }
         },
         onShow() {
+            this.init()
+            this.getMyAct(this.openid)
         },
         created() {
         },
         mounted() {
-            this.init()
-            this.getMyAct(this.openid)
         },
         methods: {
             init() {
@@ -54,6 +54,15 @@
                     const data = await get('/myActivity', {openid: openid})
                     this.myAct = data.activity
                 }
+            },
+            actOnClick(activityId) {
+                const openid = wx.getStorageSync('openid')
+                if (openid === '') {
+                    return
+                }
+                wx.navigateTo({
+                    url: '/pages/activityDetail/main?id=' + activityId
+                })
             }
         }
     }

@@ -1,16 +1,26 @@
 <template>
   <div>
     <div class="ac-top" v-if="activity.title">
+
       <div class="author-pic">
-        <img class="user-pic" :src="activity.author.avatarUrl">
+        <img class="user-pic" :src="activity.allMember[0].avatarUrl">
       </div>
+
       <div class="act-title_date">
         <div class="act-title">
           {{activity.title}}
         </div>
         <div class="act-date">
+          <label class="date-pre">集合时间:</label>
           {{activity.localeString}}
         </div>
+      </div>
+
+      <div class="act-btn">
+        <button v-if="isTake" class="btn-quite" size="mini"
+                @click="btnQuiteOnClick()">
+          <image src='../../static/images/quite.png' mode='widthFix'></image>
+        </button>
       </div>
     </div>
     <div class="ac-mid" :style="{height: screenHeight*0.5 + 'px'}">
@@ -30,16 +40,20 @@
       </map>
     </div>
     <div class="ac-bom" :style="{height: 0.5* screenHeight - 48 + 'px'}">
-<!--      <label class="mem-title"></label>-->
+      <!--      <label class="mem-title"></label>-->
       <div class="act-allMem" v-if="activity.title">
         <div class="act-mem" v-for="(mem,index) in activity.allMember">
-            <img :src="mem.avatarUrl">
-            <div class="nick">{{mem.nickName}}</div>
+          <img :src="mem.avatarUrl">
+          <div class="nick">{{mem.nickName}}</div>
         </div>
       </div>
-      <div class="take-act" v-if="!isTake">
-        <button class="btn-take" size="default" @click="btnTakeOnclick()">
+      <div class="take-act">
+        <button v-if="!isTake" class="btn-take" size="default" @click="btnTakeOnclick()">
           即刻参加
+        </button>
+
+        <button v-if="isTake" class="btn-share" open-type='share' size="default">
+          分享我的训练
         </button>
       </div>
     </div>
@@ -76,6 +90,16 @@
                 centerLocation: {longitude: 0, latitude: 0},
             }
         },
+        onShareAppMessage() {
+            const userInfo = wx.getStorageSync('userInfo')
+            let title = '我参加了一次高性能单车训练'
+            if (this.activity.allMember[0].openid === userInfo.openid) {
+                title = '我发起了一次高性能单车训练'
+            }
+            return {
+                title: title,
+            }
+        },
         mounted() {
             this.screenHeight = wx.getSystemInfoSync().windowHeight
         },
@@ -86,22 +110,30 @@
             this.activityId = this.$root.$mp.query.id
             doLogin()
             this.getActivityDetail(this.activityId)
+
+            // 初始化时，执行一次获取成员位置信息
+            const that = this
+            wx.getLocation({
+                type: 'gcj02',
+                success: async function (res) {
+                    that.postMyLocation(res.latitude, res.longitude)
+                }
+            })
+
+            // 后台获取位置变化信息
+            wx.onLocationChange((res) => {
+                this.postMyLocation(res.latitude, res.longitude)
+            })
         },
         methods: {
             init() {
                 this.polyline[0].points = this.activity.polyline.points
                 this.initMap()
                 this.isTake = this.isAuthor()
-
-                if (this.isTake) {
-                    this.postMyLocation()
-                }
-            },
-            isAuthor() {
-                // todo
             },
             async getActivityDetail(acId) {
-                const data = await get('/activityDetail/', {activityId: acId})
+                const userInfo = wx.getStorageSync('userInfo')
+                const data = await get('/activityDetail/', {activityId: acId, openid: userInfo.openid})
                 if (data.success) {
                     this.activity = data.activity.activityInfo
                     this.init()
@@ -128,42 +160,66 @@
             },
             async btnTakeOnclick() {
                 this.isTake = true
-                this.activity.allMember.push(wx.getStorageSync('userInfo'))
-            },
-            postMyLocation() {
-                const that = this
-                wx.getLocation({
-                    type: 'gcj02',
-                    success: async function (res) {
-                        const latitude = res.latitude
-                        const longitude = res.longitude
-                        const data = await post('/updateLocation/', {
-                            openid: wx.getStorageSync('openid'),
-                            activityId: that.activityId,
-                            location: {latitude: latitude, longitude: longitude}
-                        })
-                        // 更新活动所有成员的位置信息
-                        that.markers = []
-                        for (const mem of data.allLocation) {
-                            that.markers.push({
-                                latitude: mem.location.latitude,
-                                longitude: mem.location.longitude,
-                                iconPath: mem.iconPath,
-                                id: mem.id,
-                                width: 30,
-                                height: 30
-                            })
-                        }
+                wx.startLocationUpdateBackground({
+                    success: (res) => {
+                        console.log('startLocationUpdateBackground success')
+                    },
+                    fail: (err) => {
+                        console.log('startLocationUpdateBackground fail')
                     }
                 })
+                this.activity.allMember.push(wx.getStorageSync('userInfo'))
+            },
+            async postMyLocation(latitude, longitude) {
+                const that = this
+                // wx.getLocation({
+                //     type: 'gcj02',
+                // success: async function (res) {
+                const data = await post('/updateLocation/', {
+                    openid: wx.getStorageSync('openid'),
+                    activityId: that.activityId,
+                    location: {latitude: latitude, longitude: longitude}
+                })
+                // 更新活动所有成员的位置信息
+                that.markers = []
+                for (const mem of data.allLocation) {
+                    that.markers.push({
+                        latitude: mem.location.latitude,
+                        longitude: mem.location.longitude,
+                        iconPath: mem.iconPath,
+                        id: mem.id,
+                        width: 30,
+                        height: 30
+                    })
+                }
+                // }
+                // })
             },
             isAuthor() {
                 let re = false
                 const userInfo = wx.getStorageSync('userInfo')
-                if (this.activity.author.openid === userInfo.openid) {
+                if (this.activity.allMember[0].openid === userInfo.openid) {
                     re = true
                 }
                 return re
+            },
+            btnQuiteOnClick() {
+                const that = this
+                wx.showModal({
+                    title: "提示",
+                    content: "确定要退出活动吗？",
+                    success: async function (re) {
+                        const userInfo = wx.getStorageSync('userInfo')
+                        if (re.confirm) {
+                            const res = await post('/quiteActivity/', {
+                                activityId: that.activityId,
+                                openid: userInfo.openid
+                            })
+                            // 回到首页
+                            wx.navigateBack({})
+                        }
+                    }
+                })
             }
         },
 
