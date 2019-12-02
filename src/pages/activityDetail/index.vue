@@ -168,7 +168,15 @@
                         console.log('startLocationUpdateBackground fail')
                     }
                 })
-                this.activity.allMember.push(wx.getStorageSync('userInfo'))
+                const userInfo = wx.getStorageSync('userInfo')
+                const data = {
+                    openid: userInfo.openid,
+                    userInfo: userInfo,
+                    activityId: this.activityId
+                }
+                const act = await post('/takeActivity/', data)
+                this.activity = act.activity.activityInfo
+                // this.activity.allMember.push(wx.getStorageSync('userInfo'))
             },
             async postMyLocation(latitude, longitude) {
                 const that = this
