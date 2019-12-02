@@ -70,6 +70,7 @@
         name: "index",
         data() {
             return {
+                canUpdateLocation: true,
                 allMemberLocation: [],
                 isTake: false,
                 mapScale: 10,
@@ -122,7 +123,14 @@
 
             // 后台获取位置变化信息
             wx.onLocationChange((res) => {
-                this.postMyLocation(res.latitude, res.longitude)
+                if (this.canUpdateLocation) {
+                    this.postMyLocation(res.latitude, res.longitude)
+                    this.canUpdateLocation = false
+                    // 4分钟已上传位置信息
+                    setTimeout(() => {
+                        this.canUpdateLocation = true
+                    }, 1000 * 60 * 4)
+                }
             })
         },
         methods: {
