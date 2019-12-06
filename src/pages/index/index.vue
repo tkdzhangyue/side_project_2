@@ -62,8 +62,8 @@
         <div class="each-activity" v-if="!publishNewActivity">
           <div class="one-activity" @click="activityOnClick(activityIndex)"
                v-for="(oneActivity, activityIndex) in activityPage.activity" :key="activityIndex">
-            <img class="user-pic" :src="oneActivity.allMember[0].avatarUrl">
-            <!--            <label class="user-nic">{{oneActivity.author.nickName}}</label>-->
+            <img class="user-pic"
+                 :src="oneActivity.allMember[0].avatarUrl===''?'../../static/images/user_48px.png':oneActivity.allMember[0].avatarUrl">
             <div class="activity-detail">
               <div class="activity_title-date">
                 <div class="activity_title">{{oneActivity.title}}</div>

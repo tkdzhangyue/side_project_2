@@ -3,10 +3,13 @@
     <div class="ac-top" v-if="activity.title">
 
       <div class="author-pic">
-        <img class="user-pic" :src="activity.allMember[0].avatarUrl">
+        <image class="user-pic"
+               :src="activity.allMember[0].avatarUrl">
+        </image>
       </div>
 
-      <div class="act-title_date">
+      <div class=" act-title_date
+        ">
         <div class="act-title">
           {{activity.title}}
         </div>
@@ -144,6 +147,7 @@
                 const data = await get('/activityDetail/', {activityId: acId, openid: userInfo.openid})
                 if (data.success) {
                     this.activity = data.activity.activityInfo
+                    this.initUserPic(this.activity.allMember)
                     this.init()
                     return true
                 } else {
@@ -151,6 +155,13 @@
                     return false
                 }
 
+            },
+            initUserPic(allMem) {
+                for (const mem in allMem) {
+                    if (mem.avatarUrl === '') {
+                        mem.avatarUrl = '../../static/images/user_48px.png'
+                    }
+                }
             },
             initMap() {
                 this.mapLa = this.activity.polyline.points[0].latitude * 0.5 + this.activity.polyline.points[this.activity.polyline.points.length - 1].latitude * 0.5
