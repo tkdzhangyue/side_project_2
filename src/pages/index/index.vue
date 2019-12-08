@@ -1,43 +1,43 @@
 <template>
-  <div class="pMain" :style="{height: screenHeight+'px'}">
+  <div :style="{height: screenHeight+'px', color: fontColor}" class="pMain">
 
-    <open-data type="userAvatarUrl" class="user-pic-head"></open-data>
+    <open-data class="user-pic-head" type="userAvatarUrl"></open-data>
 
     <div @click="clickHandle" class="map-border">
       <map
-          id="map"
-          style="width: 100%;height: 100%;"
-          :longitude="mapLo.longitude"
           :latitude="mapLo.latitude"
-          scale="10"
+          :longitude="mapLo.longitude"
           :markers="markers"
           :polyline="polyline"
           :subkey="mapKey"
-          @regionchange="regionchange"
-          @start="regionchangestart"
+          @controltap="controltap"
           @end="regionchangeend"
           @markertap="markertap"
-          @controltap="controltap"
           @poitap="poitap"
+          @regionchange="regionchange"
+          @start="regionchangestart"
           @tap="maptap"
-          show-location>
+          id="map"
+          scale="10"
+          show-location
+          style="width: 100%;height: 100%;">
         <cover-view class="cover-view">
-          <cover-image src="../../static/images/2.png" @click="putMark()"></cover-image>
+          <cover-image @click="putMark()" src="../../static/images/2.png"></cover-image>
         </cover-view>
       </map>
     </div>
     <div class="activity-menu" v-if="beginMakeActivity||publishNewActivity">
-      <button class="btn-new-activity" type="default" size="default" :loading="false" :plain="false"
-              :disabled="false"
-              @click="startNewActivity"
+      <button :disabled="false" :loading="false" :plain="false" @click="startNewActivity" class="btn-new-activity"
+              size="default"
+              type="default"
               v-if="beginMakeActivity">
         生成路线
       </button>
       <div class="edit-activity" v-if="publishNewActivity">
         <input placeholder="活动介绍" v-model="activityEdit.title">
         <div>
-          <picker mode="multiSelector" @change="bindMultiPickerChange"
-                  @columnchange="bindMultiPickerColumnChange" :value="multiIndex" :range="multiArray">
+          <picker :range="multiArray" :value="multiIndex"
+                  @change="bindMultiPickerChange" @columnchange="bindMultiPickerColumnChange" mode="multiSelector">
             <view class="picker">
               活动时间选择：{{multiArray[0][multiIndex[0]]}}
               {{multiArray[1][multiIndex[1]]}}点{{multiArray[2][multiIndex[2]]}}分
@@ -45,10 +45,10 @@
           </picker>
         </div>
         <input placeholder="活动强度介绍" readonly v-model="activityEdit.intensity">
-        <button class="btn-publish" size="mini" open-type="getUserInfo" @getuserinfo="publishActivity">
+        <button @getuserinfo="publishActivity" class="btn-publish" open-type="getUserInfo" size="mini">
           确认发布
         </button>
-        <button class="btn-cancel" size="mini" @click="cancelPublish()">
+        <button @click="cancelPublish()" class="btn-cancel" size="mini">
           取消
         </button>
       </div>
@@ -60,10 +60,11 @@
         </div>
 
         <div class="each-activity" v-if="!publishNewActivity">
-          <div class="one-activity" @click="activityOnClick(activityIndex)"
-               v-for="(oneActivity, activityIndex) in activityPage.activity" :key="activityIndex">
-            <img class="user-pic"
-                 :src="oneActivity.allMember[0].avatarUrl===''?'../../static/images/user_48px.png':oneActivity.allMember[0].avatarUrl">
+          <div :key="activityIndex" @click="activityOnClick(activityIndex)"
+               class="one-activity" v-for="(oneActivity, activityIndex) in activityPage.activity">
+            <img
+                :src="oneActivity.allMember[0].avatarUrl===''?'../../static/images/user_48px.png':oneActivity.allMember[0].avatarUrl"
+                class="user-pic">
             <div class="activity-detail">
               <div class="activity_title-date">
                 <div class="activity_title">{{oneActivity.title}}</div>
@@ -73,7 +74,7 @@
                 {{oneActivity.intensity}}
               </div>
               <div class="activity-button">
-                <button size="mini" open-type="getUserInfo" @getuserinfo="bindGetUserInfo">
+                <button @getuserinfo="bindGetUserInfo" open-type="getUserInfo" size="mini">
                   详细
                 </button>
               </div>
@@ -89,8 +90,8 @@
 
 <script>
     import QQMapWx from '../../libs/qqmap-wx-jssdk.js'
-    import {mapKey, mapSig} from '../../config/config.js'
-    import {deepCopy, doLogin, post, get} from '../../utils/index.js'
+    import {fontColor, mapKey, mapSig, polylineColor} from '../../config/config.js'
+    import {deepCopy, doLogin, get, post} from '../../utils/index.js'
     import {Activity} from "../../models/activity";
 
     const qqmapsdk = new QQMapWx({key: mapKey})
@@ -98,6 +99,7 @@
     export default {
         data() {
             return {
+                fontColor: fontColor,
                 openid: '',
                 selectedActivityIndex: 1,
                 currentHours: new Date().getHours(),
@@ -134,7 +136,7 @@
                 polyline: [
                     {
                         points: [],
-                        color: '#FF0000DD',
+                        color: polylineColor,
                         width: 6,
                         dottedLine: false
                     }
@@ -181,7 +183,9 @@
         },
         onShow() {
             this.mapCtx = wx.createMapContext('map')
-            this.getActivityPage()
+            setTimeout(() => {
+                this.getActivityPage()
+            }, 20)
             if (this.polyline[0].points.length !== 0) {
                 this.polyline[0].points = []
             }
