@@ -125,7 +125,9 @@
         onShow() {
             this.activityId = this.$root.$mp.query.id
             doLogin()
-            this.getActivityDetail(this.activityId)
+            setTimeout(() => {
+                this.getActivityDetail(this.activityId)
+            }, 10)
 
             // 初始化时，执行一次获取成员位置信息
             const that = this
