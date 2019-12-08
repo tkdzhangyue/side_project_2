@@ -5,22 +5,22 @@
 
     <div @click="clickHandle" class="map-border">
       <map
-          :latitude="mapLo.latitude"
-          :longitude="mapLo.longitude"
-          :markers="markers"
-          :polyline="polyline"
-          :subkey="mapKey"
-          @controltap="controltap"
-          @end="regionchangeend"
-          @markertap="markertap"
-          @poitap="poitap"
-          @regionchange="regionchange"
-          @start="regionchangestart"
-          @tap="maptap"
-          id="map"
-          scale="10"
-          show-location
-          style="width: 100%;height: 100%;">
+        :latitude="mapLo.latitude"
+        :longitude="mapLo.longitude"
+        :markers="markers"
+        :polyline="polyline"
+        :subkey="mapKey"
+        @controltap="controltap"
+        @end="regionchangeend"
+        @markertap="markertap"
+        @poitap="poitap"
+        @regionchange="regionchange"
+        @start="regionchangestart"
+        @tap="maptap"
+        id="map"
+        scale="10"
+        show-location
+        style="width: 100%;height: 100%;">
         <cover-view class="cover-view">
           <cover-image @click="putMark()" src="../../static/images/2.png"></cover-image>
         </cover-view>
@@ -60,11 +60,12 @@
         </div>
 
         <div class="each-activity" v-if="!publishNewActivity">
-          <div :key="activityIndex" @click="activityOnClick(activityIndex)"
-               class="one-activity" v-for="(oneActivity, activityIndex) in activityPage.activity">
+          <div :key="activityIndex" :style="{borderColor: borderColor}"
+               @click="activityOnClick(activityIndex)" class="one-activity"
+               v-for="(oneActivity, activityIndex) in activityPage.activity">
             <img
-                :src="oneActivity.allMember[0].avatarUrl===''?'../../static/images/user_48px.png':oneActivity.allMember[0].avatarUrl"
-                class="user-pic">
+              :src="oneActivity.allMember[0].avatarUrl===''?'../../static/images/user_48px.png':oneActivity.allMember[0].avatarUrl"
+              class="user-pic">
             <div class="activity-detail">
               <div class="activity_title-date">
                 <div class="activity_title">{{oneActivity.title}}</div>
@@ -74,7 +75,9 @@
                 {{oneActivity.intensity}}
               </div>
               <div class="activity-button">
-                <button @getuserinfo="bindGetUserInfo" open-type="getUserInfo" size="mini">
+                <button :style="{backgroundColor: btnColor, color: btnTextColor}" @getuserinfo="bindGetUserInfo"
+                        open-type="getUserInfo"
+                        size="mini">
                   详细
                 </button>
               </div>
@@ -90,7 +93,7 @@
 
 <script>
     import QQMapWx from '../../libs/qqmap-wx-jssdk.js'
-    import {fontColor, mapKey, mapSig, polylineColor} from '../../config/config.js'
+    import {fontColor, mapKey, mapSig, polylineColor, btnColor, borderColor, btnTextColor} from '../../config/config.js'
     import {deepCopy, doLogin, get, post} from '../../utils/index.js'
     import {Activity} from "../../models/activity";
 
@@ -99,7 +102,10 @@
     export default {
         data() {
             return {
+                btnTextColor: btnTextColor,
+                btnColor: btnColor,
                 fontColor: fontColor,
+                borderColor: borderColor,
                 openid: '',
                 selectedActivityIndex: 1,
                 currentHours: new Date().getHours(),
@@ -201,6 +207,8 @@
                 }
                 console.log(this.activityPage.activity)
                 wx.setStorageSync('activityInfo', this.activityPage.activity)
+                // 显示第一个活动的路线并定位
+                this.activityOnClick(0)
             },
             cancelPublish() {
                 this.publishNewActivity = false
@@ -222,7 +230,7 @@
                     tmp.points.splice(1, 1)
                     activityToAdd.polyline = tmp
                     activityToAdd.activityDate = this.activityEdit.date
-                    activityToAdd.localeString = new Date(this.activityEdit.date).toLocaleString()
+                    activityToAdd.localeString = this.getLocaleString(this.activityEdit.date)
                     activityToAdd.author = userInfo
                     activityToAdd.allMember.push(userInfo)
                     if (activityToAdd.title.length < 4 ||
@@ -374,7 +382,7 @@
                         that.polyline = []
                         that.polyline.push({
                             points: pl,
-                            color: '#FF0000DD',
+                            color: polylineColor,
                             width: 6,
                             dottedLine: false
                         })
@@ -460,7 +468,6 @@
                 time1 += this.multiIndex[0] * 24 * 3600 * 1000
                 this.activityEdit.date = new Date(time1).getTime()
             },
-
             async getActivityMembersLocation(activity) {
                 const openid = wx.getStorageSync('openid')
                 if (activity.allMember.indexOf(openid) !== -1) {
@@ -471,6 +478,15 @@
                         }
                     }
                 }
+            },
+            getLocaleString(date) {
+                const actTime = new Date(date)
+                const year = actTime.getFullYear()
+                const mon = actTime.getUTCMonth()
+                const day = actTime.getUTCDate()
+                const hou = actTime.getUTCHours()
+                const min = actTime.getUTCMinutes()
+                return year + '年' + mon + '月' + day + '日' + hou + '时' + min + '分'
             }
 
         }

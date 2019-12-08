@@ -3,8 +3,8 @@
     <div class="ac-top" v-if="activity.title">
 
       <div class="author-pic">
-        <image class="user-pic"
-               :src="activity.allMember[0].avatarUrl">
+        <image :src="activity.allMember[0].avatarUrl"
+               class="user-pic">
         </image>
       </div>
 
@@ -20,43 +20,47 @@
       </div>
 
       <div class="act-btn">
-        <button v-if="isTake" class="btn-quite" size="mini"
-                @click="btnQuiteOnClick()">
-          <image src='../../static/images/quite.png' mode='widthFix'></image>
+        <button :style="{borderColor: borderColor}" @click="btnQuiteOnClick()" class="btn-quite"
+                size="mini"
+                v-if="isTake">
+          退出
         </button>
+        <!--        <image src='../../static/images/quite.png' mode='widthFix'></image>-->
       </div>
     </div>
-    <div class="ac-mid" :style="{height: screenHeight*0.5 + 'px'}">
+    <div :style="{height: screenHeight*0.5 + 'px'}" class="ac-mid">
       <map
-          id="map"
-          style="width: 100%;height: 100%;"
-          :longitude="mapLo"
-          @regionchange="regionchange"
-          @start="regionchange"
-          @end="regionchange"
-          :latitude="mapLa"
-          :scale="mapScale"
-          :markers="markers"
-          :polyline="polyline"
-          :subkey="mapKey"
-          show-location>
+        :latitude="mapLa"
+        :longitude="mapLo"
+        :markers="markers"
+        :polyline="polyline"
+        :scale="mapScale"
+        :subkey="mapKey"
+        @end="regionchange"
+        @regionchange="regionchange"
+        @start="regionchange"
+        id="map"
+        show-location
+        style="width: 100%;height: 100%;">
       </map>
     </div>
-    <div class="ac-bom" :style="{height: 0.5* screenHeight - 48 + 'px'}">
+    <div :style="{height: 0.5* screenHeight - 48 + 'px'}" class="ac-bom">
       <!--      <label class="mem-title"></label>-->
-      <div class="act-allMem" v-if="activity.title">
+      <div :style="{paddingLeft:allMemPadding+'px', paddingRight: allMemPadding+'px'}" class="act-allMem"
+           v-if="activity.title">
         <div class="act-mem" v-for="(mem,index) in activity.allMember">
           <img :src="mem.avatarUrl">
           <div class="nick">{{mem.nickName}}</div>
         </div>
       </div>
       <div class="take-act">
-        <button v-if="!isTake" class="btn-take" size="default" @click="btnTakeOnclick()">
+        <button @click="btnTakeOnclick()" class="btn-take" size="default" v-if="!isTake">
           即刻参加
         </button>
 
-        <button v-if="isTake" class="btn-share" open-type='share' size="default">
-          分享我的训练
+        <button :style="{backgroundColor: importantColor}" class="btn-share" open-type='share' size="default"
+                v-if="isTake">
+          发送队友
         </button>
       </div>
     </div>
@@ -65,14 +69,17 @@
 
 <script>
     import QQMapWx from '../../libs/qqmap-wx-jssdk.js'
-    import {mapKey, mapSig, polylineColor} from '../../config/config.js'
+    import {mapKey, mapSig, polylineColor, btnColor, importantColor, borderColor} from '../../config/config.js'
     import {deepCopy, doLogin, post, get} from '../../utils/index.js'
     import {Activity} from "../../models/activity";
 
     export default {
-        name: "index",
+        name: "activityDetail",
         data() {
             return {
+                borderColor: borderColor,
+                importantColor: importantColor,
+                btnColor: btnColor,
                 canUpdateLocation: true,
                 allMemberLocation: [],
                 isTake: false,
@@ -80,6 +87,8 @@
                 mapLo: 0,
                 mapLa: 0,
                 screenHeight: 600,
+                screenWidth: 500,
+                allMemPadding: 6,
                 activityId: '',
                 activity: {},
                 markers: [],
@@ -96,16 +105,19 @@
         },
         onShareAppMessage() {
             const userInfo = wx.getStorageSync('userInfo')
-            let title = '我参加了一次高性能单车训练'
+            let title = '我参加了:'
             if (this.activity.allMember[0].openid === userInfo.openid) {
-                title = '我发起了一次高性能单车训练'
+                title = '我发起了:'
             }
+            title = title + this.activity.title
             return {
                 title: title,
             }
         },
         mounted() {
             this.screenHeight = wx.getSystemInfoSync().windowHeight
+            this.screenWidth = wx.getSystemInfoSync().windowWidth
+            this.allMemPadding = (this.screenWidth % 50) / 2
         },
         created() {
 
@@ -140,13 +152,18 @@
             init() {
                 this.polyline[0].points = this.activity.polyline.points
                 this.initMap()
-                this.isTake = this.isAuthor()
+                this.isTake = this.isMember()
             },
             async getActivityDetail(acId) {
                 const userInfo = wx.getStorageSync('userInfo')
                 const data = await get('/activityDetail/', {activityId: acId, openid: userInfo.openid})
                 if (data.success) {
                     this.activity = data.activity.activityInfo
+                    setTimeout(() => {
+                        for (let i = 0; i++; i < 100) {
+                            this.activity.allMember.push(this.activity.allMember[1])
+                        }
+                    }, 1000)
                     this.initUserPic(this.activity.allMember)
                     this.init()
                     return true
@@ -222,11 +239,13 @@
                 // }
                 // })
             },
-            isAuthor() {
+            isMember() {
                 let re = false
                 const userInfo = wx.getStorageSync('userInfo')
-                if (this.activity.allMember[0].openid === userInfo.openid) {
-                    re = true
+                for (const mem of this.activity.allMember) {
+                    if (mem.openid === userInfo.openid) {
+                        re = true
+                    }
                 }
                 return re
             },

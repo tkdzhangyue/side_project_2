@@ -27,11 +27,12 @@
 }
 
 .btn-quite {
-    width: 28px;
+    width: 34px;
     height: 28px;
-    border: none;
+    /*border: none;*/
     background-color: white;
     padding: 0 !important;
+    border: 1px solid;
 }
 
 .btn-quite image {
@@ -80,6 +81,9 @@
     height: calc(100% - 48px);
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
+    overflow: auto;
+
 }
 
 .act-mem {

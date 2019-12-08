@@ -1,6 +1,7 @@
 <template>
   <div class="log-main">
-    <div class="my-act" v-for="(act,index) in myAct" @click="actOnClick(act.activityId)">
+    <div :style="{borderColor: borderColor}" @click="actOnClick(act.activityId)" class="my-act"
+         v-for="(act,index) in myAct">
       <div class="act-title">
         <div class="act-t">{{act.title}}</div>
         <div class="act-date">{{act.localeString}}</div>
@@ -17,12 +18,14 @@
 
 <script>
     import {deepCopy, doLogin, post, get, isNull} from '../../utils/index.js'
+    import {borderColor} from '../../config/config';
     import {Activity} from "../../models/activity";
 
     export default {
         components: {},
         data() {
             return {
+                borderColor: borderColor,
                 myAct: [{
                     title: '',
                     localeString: '',
