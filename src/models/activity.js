@@ -15,6 +15,7 @@ export class Activity {
     groupMembers = []
     polyline = {}
     allMember = []
+    location = {latitude: 0, longitude: 0}
 }
 
 export function uuid() {

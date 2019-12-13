@@ -46,15 +46,18 @@
     </div>
     <div :style="{height: 0.5* screenHeight - 48 + 'px'}" class="ac-bom">
       <!--      <label class="mem-title"></label>-->
-      <div :style="{paddingLeft:allMemPadding+'px', paddingRight: allMemPadding+'px'}" class="act-allMem"
-           v-if="activity.title">
+      <div
+        :style="{marginLeft:allMemPadding+'px', marginRight: allMemPadding+'px', borderColor: borderColor, width: 'calc(100% - '+2*allMemPadding+'px)'}"
+        class="act-allMem"
+        v-if="activity.title">
         <div class="act-mem" v-for="(mem,index) in activity.allMember">
           <img :src="mem.avatarUrl">
           <div class="nick">{{mem.nickName}}</div>
         </div>
       </div>
       <div class="take-act">
-        <button @click="btnTakeOnclick()" class="btn-take" size="default" v-if="!isTake">
+        <button :style="{backgroundColor:btnColor}" @click="btnTakeOnclick()" class="btn-take" size="default"
+                v-if="!isTake">
           即刻参加
         </button>
 
@@ -122,8 +125,26 @@
         created() {
 
         },
+        onPullDownRefresh() {
+            this.getActivityDetail(this.activityId)
+        },
         onShow() {
+        },
+        onLoad() {
             this.activityId = this.$root.$mp.query.id
+            const allActInfo = wx.getStorageSync('activityInfo')
+            // 将地图焦点定位到活动焦点
+            if (allActInfo) {
+                const act = allActInfo.filter((act) => {
+                    if (act.activityId === this.activityId) {
+                        return true
+                    }
+                })
+                if (act.length === 1) {
+                    this.mapLo = act[0].location.longitude
+                    this.mapLa = act[0].location.latitude
+                }
+            }
             doLogin()
             setTimeout(() => {
                 this.getActivityDetail(this.activityId)

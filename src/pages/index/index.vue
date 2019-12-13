@@ -163,6 +163,7 @@
                         latitude: res.latitude,
                         longitude: res.longitude
                     }
+                    wx.setStorageSync('userLocation', that.mapLo)
                 }
             })
         },
@@ -187,7 +188,12 @@
                 }
             })
         },
+        onPullDownRefresh() {
+            this.getActivityPage()
+        },
         onShow() {
+        },
+        onLoad() {
             this.mapCtx = wx.createMapContext('map')
             setTimeout(() => {
                 this.getActivityPage()
@@ -200,7 +206,19 @@
         methods: {
             async getActivityPage() {
                 this.openid = wx.getStorageSync('openid')
-                const allActivity = await get('/getMainPageActivity/', {openid: this.openid})
+                const userLocation = wx.getStorageSync('userLocation')
+                if (!userLocation) {
+                    wx.showToast({
+                        title: '获取当前位置失败，请确认位置权限！',
+                        icon: 'none',
+                        duration: 2000
+                    })
+                    return
+                }
+                const allActivity = await get('/getMainPageActivity/', {
+                    openid: this.openid,
+                    userLocation: userLocation
+                })
                 this.activityPage.activity = []
                 for (const item of allActivity) {
                     this.activityPage.activity.push(item.activityInfo)
@@ -233,6 +251,14 @@
                     activityToAdd.localeString = this.getLocaleString(this.activityEdit.date)
                     activityToAdd.author = userInfo
                     activityToAdd.allMember.push(userInfo)
+                    const tmpLocation = [0, 0]
+                    for (const p of this.activityEdit.points) {
+                        tmpLocation[1] += p.longitude
+                        tmpLocation[0] += p.latitude
+                    }
+                    tmpLocation[1] = tmpLocation[1] / this.activityEdit.points.length
+                    tmpLocation[0] = tmpLocation[0] / this.activityEdit.points.length
+                    activityToAdd.location = tmpLocation
                     if (activityToAdd.title.length < 4 ||
                         activityToAdd.intensity < 1
                     ) {

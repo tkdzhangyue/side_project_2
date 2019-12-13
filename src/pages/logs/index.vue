@@ -35,7 +35,12 @@
                 openid: '',
             }
         },
+        onPullDownRefresh() {
+            this.getMyAct(this.openid)
+        },
         onShow() {
+        },
+        onLoad() {
             this.init()
             this.getMyAct(this.openid)
         },
